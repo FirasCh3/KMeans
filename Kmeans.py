@@ -24,12 +24,11 @@ class KMeans:
         data = data[cols]
         data = data.dropna()
         data = data[:2500]
-        scaler = StandardScaler()
-        self.data = scaler.fit_transform(data)
-        self.centroids = self.data[np.random.choice(self.data.shape[0], self.k, replace=False)]
+        self.data = StandardScaler().fit_transform(data)
+        self.centroids = self.__init_centroids()
         print(self.centroids)
     def __init_centroids(self):
-        return 
+        return np.array(random.choices(self.data, k=self.k))
     def __calculate_distance(self):
         distance = np.zeros((len(self.data), self.k))
 
@@ -40,17 +39,19 @@ class KMeans:
     def __plot(self, data, labels, centroids):
         pca = PCA(n_components=2)
         data_2d = pca.fit_transform(data)
-        centroids_2d = pca.fit_transform(centroids)
+        centroids_2d = pca.transform(centroids)
         sns.scatterplot(x=data_2d[:, 0], y=data_2d[:, 1], hue=labels, palette=sns.color_palette("bright")[:self.k])
         sns.scatterplot(x=centroids_2d[:, 0], y=centroids_2d[:, 1], color="black")
         plt.draw()
         plt.pause(1)
         plt.clf() 
     def fit(self):
-        for _ in range(self.max_iter):
+        old_centroids = None
+        while not (old_centroids == self.centroids).all():
             distance = self.__calculate_distance()
             labels = np.argmin(distance, axis=1)
             self.__plot(self.data, labels, self.centroids)
+            old_centroids = self.centroids
             self.centroids = np.array([self.data[labels==i].mean(axis=0) for i in range(self.k)])
             print(self.centroids)
         plt.show()    
