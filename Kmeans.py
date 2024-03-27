@@ -12,29 +12,30 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+import random
 class KMeans:
-    def __init__(self, k=2, max_iter=50):
+    def __init__(self, k=5, max_iter=100):
         self.k = k
         self.max_iter = max_iter
         self.centroids = None
         self.data=None
-    def preprocess(self):
-        self.data = self.data.dropna()
-
-    def load_data(self, data):
-        cols = ["overall", "age", "potential", "wage_eur", "value_eur"]
+    def preprocess(self, data):
+        cols=["overall", "age", "potential", "wage_eur", "value_eur"]
         data = data[cols]
+        data = data.dropna()
         data = data[:2500]
-        scaler = StandardScaler().set_output(transform="pandas")
-        data = scaler.fit_transform(data)
-        self.data = data
-        print(self.data.describe())
-        self.centroids = self.data.sample(n=self.k)
-        self.centroids.index = [i for i in range(self.k)]
-    def __calculate_distance(self, distance):
-        for i in self.data.index:
-                for j in range(self.k):
-                    distance.loc[i, j] = np.sqrt(np.sum(((self.data.loc[i, :] - self.centroids.loc[j, :])**2)))
+        scaler = StandardScaler()
+        self.data = scaler.fit_transform(data)
+        self.centroids = self.data[np.random.choice(self.data.shape[0], self.k, replace=False)]
+        print(self.centroids)
+    def __init_centroids(self):
+        return 
+    def __calculate_distance(self):
+        distance = np.zeros((len(self.data), self.k))
+
+        for i in range(len(self.data)):
+            for j in range(self.k):
+                distance[i, j] = np.sqrt(np.sum((self.data[i, :] - self.centroids[j, :])**2))
         return distance
     def __plot(self, data, labels, centroids):
         pca = PCA(n_components=2)
@@ -43,24 +44,22 @@ class KMeans:
         sns.scatterplot(x=data_2d[:, 0], y=data_2d[:, 1], hue=labels, palette=sns.color_palette("bright")[:self.k])
         sns.scatterplot(x=centroids_2d[:, 0], y=centroids_2d[:, 1], color="black")
         plt.draw()
-        plt.pause(0.1)
+        plt.pause(1)
         plt.clf() 
     def fit(self):
-        distance = pd.DataFrame(columns=[i for i in range(self.k)], index = [i for i in self.data.index])
         for _ in range(self.max_iter):
-            self.__calculate_distance(distance)      
-            labels = distance.idxmin(axis=1)
+            distance = self.__calculate_distance()
+            labels = np.argmin(distance, axis=1)
             self.__plot(self.data, labels, self.centroids)
-            self.centroids = self.data.groupby(labels).mean()
+            self.centroids = np.array([self.data[labels==i].mean(axis=0) for i in range(self.k)])
             print(self.centroids)
-        plt.show()       
+        plt.show()    
        
 
 
 
 
-model = KMeans()
+model = KMeans(max_iter=50)
 data = pd.read_csv("Kmeans\data\players_22.csv")
-model.load_data(data)
-model.preprocess()
+model.preprocess(data)
 model.fit()
